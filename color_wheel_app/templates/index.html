@@ -33,7 +33,14 @@
         const ctx = canvas.getContext("2d");
         const info = document.getElementById("info");
 
-        // Draw a color wheel
+        const CSS_COLORS = {
+            "Red": "#FF0000", "Green": "#00FF00", "Blue": "#0000FF", "Yellow": "#FFFF00",
+            "Cyan": "#00FFFF", "Magenta": "#FF00FF", "Orange": "#FFA500", "Purple": "#800080",
+            "Pink": "#FFC0CB", "Lime": "#BFFF00", "Teal": "#008080", "Navy": "#000080",
+            "Maroon": "#800000", "Olive": "#808000", "Brown": "#A52A2A", "Gray": "#808080",
+            "Black": "#000000", "White": "#FFFFFF"
+        };
+
         function drawColorWheel() {
             const radius = canvas.width / 2;
             const image = ctx.createImageData(canvas.width, canvas.height);
@@ -44,8 +51,7 @@
                     const angle = Math.atan2(y, x);
                     if (r <= radius) {
                         const hue = (angle * 180 / Math.PI + 360) % 360;
-                        const saturation = r / radius;
-                        const [rC, gC, bC] = hslToRgb(hue / 360, saturation, 0.5);
+                        const [rC, gC, bC] = hslToRgb(hue / 360, 1, 0.5); // full saturation and fixed lightness
                         const px = ((y + radius) * canvas.width + (x + radius)) * 4;
                         image.data[px] = rC;
                         image.data[px + 1] = gC;
@@ -61,7 +67,7 @@
             let r, g, b;
 
             if (s === 0) {
-                r = g = b = l; // achromatic
+                r = g = b = l;
             } else {
                 const hue2rgb = (p, q, t) => {
                     if (t < 0) t += 1;
@@ -82,27 +88,34 @@
             return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
         }
 
-        // Converts RGB to hex
         function rgbToHex(r, g, b) {
             return "#" + [r, g, b].map(x =>
                 x.toString(16).padStart(2, "0")
             ).join("");
         }
 
-        // Get color name from a small list (for demo purposes)
-        function getColorName(r, g, b) {
-            const hex = rgbToHex(r, g, b).toLowerCase();
-            const names = {
-                "#ff0000": "Red",
-                "#00ff00": "Lime",
-                "#0000ff": "Blue",
-                "#ffff00": "Yellow",
-                "#00ffff": "Cyan",
-                "#ff00ff": "Magenta",
-                "#ffffff": "White",
-                "#000000": "Black"
-            };
-            return names[hex] || "Unknown Color";
+        function getNearestColorName(r, g, b) {
+            let minDist = Infinity;
+            let closest = "Unknown Color";
+
+            for (const [name, hex] of Object.entries(CSS_COLORS)) {
+                const rgb = hexToRgb(hex);
+                const dist = Math.sqrt(
+                    Math.pow(r - rgb[0], 2) +
+                    Math.pow(g - rgb[1], 2) +
+                    Math.pow(b - rgb[2], 2)
+                );
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = name;
+                }
+            }
+            return closest;
+        }
+
+        function hexToRgb(hex) {
+            const bigint = parseInt(hex.slice(1), 16);
+            return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
         }
 
         canvas.addEventListener("mousemove", (e) => {
@@ -111,7 +124,7 @@
             const y = e.clientY - rect.top;
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
-            const name = getColorName(pixel[0], pixel[1], pixel[2]);
+            const name = getNearestColorName(pixel[0], pixel[1], pixel[2]);
             info.textContent = `${name} (${hex.toUpperCase()})`;
         });
 
