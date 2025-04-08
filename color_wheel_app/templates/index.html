@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Wheel Hover</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: sans-serif;
+            margin-top: 30px;
+        }
+
+        canvas {
+            border-radius: 50%;
+        }
+
+        #info {
+            margin-top: 20px;
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Hover over the color wheel</h1>
+    <canvas id="wheel" width="400" height="400"></canvas>
+    <div id="info">Hover over a color!</div>
+
+    <script>
+        const canvas = document.getElementById("wheel");
+        const ctx = canvas.getContext("2d");
+        const info = document.getElementById("info");
+
+        // Draw a color wheel
+        function drawColorWheel() {
+            const radius = canvas.width / 2;
+            const image = ctx.createImageData(canvas.width, canvas.height);
+
+            for (let y = -radius; y < radius; y++) {
+                for (let x = -radius; x < radius; x++) {
+                    const r = Math.sqrt(x * x + y * y);
+                    const angle = Math.atan2(y, x);
+                    if (r <= radius) {
+                        const hue = (angle * 180 / Math.PI + 360) % 360;
+                        const saturation = r / radius;
+                        const [rC, gC, bC] = hslToRgb(hue / 360, saturation, 0.5);
+                        const px = ((y + radius) * canvas.width + (x + radius)) * 4;
+                        image.data[px] = rC;
+                        image.data[px + 1] = gC;
+                        image.data[px + 2] = bC;
+                        image.data[px + 3] = 255;
+                    }
+                }
+            }
+            ctx.putImageData(image, 0, 0);
+        }
+
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+
+            if (s === 0) {
+                r = g = b = l; // achromatic
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1 / 6) return p + (q - p) * 6 * t;
+                    if (t < 1 / 2) return q;
+                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                    return p;
+                };
+
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1 / 3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1 / 3);
+            }
+
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        // Converts RGB to hex
+        function rgbToHex(r, g, b) {
+            return "#" + [r, g, b].map(x =>
+                x.toString(16).padStart(2, "0")
+            ).join("");
+        }
+
+        // Get color name from a small list (for demo purposes)
+        function getColorName(r, g, b) {
+            const hex = rgbToHex(r, g, b).toLowerCase();
+            const names = {
+                "#ff0000": "Red",
+                "#00ff00": "Lime",
+                "#0000ff": "Blue",
+                "#ffff00": "Yellow",
+                "#00ffff": "Cyan",
+                "#ff00ff": "Magenta",
+                "#ffffff": "White",
+                "#000000": "Black"
+            };
+            return names[hex] || "Unknown Color";
+        }
+
+        canvas.addEventListener("mousemove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
+            const name = getColorName(pixel[0], pixel[1], pixel[2]);
+            info.textContent = `${name} (${hex.toUpperCase()})`;
+        });
+
+        drawColorWheel();
+    </script>
+</body>
+
+</html>
